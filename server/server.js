@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const express = require("express");
 const cors = require("cors");
 const app = express();
@@ -31,7 +32,8 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage }).single("files");
+const upload = multer({ storage: storage }).single("file");
+let filePath;
 
 app.post("/images", async (req, res) => {
   try {
@@ -55,53 +57,32 @@ app.post("/upload", async (req, res) => {
     } else if (err) {
       return res.status(500).json(err);
     }
-    console.log(req.file);
-  });
 
-  // try {
-  //   const images = await openai.images.generate({
-  //     model: "dall-e-2",
-  //     prompt: req.body.prompt,
-  //     n: 4,
-  //     size: "1024x1024",
-  //   });
-  //   req.body.data = images.data;
-  //   res.send(images);
-  // } catch (error) {
-  //   console.error(error);
-  // }
+    filePath = req.file.path;
+    res.status(200).send({ filePath: req.file.path });
+  });
 });
 
-// app.post("/completions", async (req, res) => {
-//   const options = {
-//     method: "POST",
-//     headers: {
-//       Authorization: `Bearer ${API_KEY}`,
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({
-//       model: "gpt-3.5-turbo",
-//       max_tokens: 100,
-//       messages: [
-//         {
-//           role: "user",
-//           content: req.body.message,
-//         },
-//       ],
-//     }),
-//   };
+app.post("/variations", async (req, res) => {
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send("File not found");
+  }
 
-//   try {
-//     const response = await fetch(
-//       "https://api.openai.com/v1/chat/completions",
-//       options
-//     );
-//     const data = await response.json();
-//     res.send(data);
-//   } catch (error) {
-//     console.log(error);
-//   }
-// });
+  const fileStream = fs.createReadStream(filePath);
+
+  try {
+    const response = await openai.images.createVariation({
+      image: fileStream,
+      model: "dall-e-2",
+      n: 4,
+      size: "1024x1024",
+    });
+
+    res.send(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

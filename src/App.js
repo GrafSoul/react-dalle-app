@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import Modal from "./components/Modal";
 
 const App = () => {
   const [images, setImages] = useState([]);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState("");
+  const [openModal, setOpenModal] = useState(false);
 
   const surpriseOptions = [
     "A blue ostrich eating a melon",
@@ -51,8 +53,10 @@ const App = () => {
 
   const handleUploadImages = async (e) => {
     const formData = new FormData();
-    formData.append("files", e.target.files[0]);
+    formData.append("file", e.target.files[0]);
     setSelectedImage(e.target.files[0]);
+    setOpenModal(true);
+    e.target.value = null;
 
     try {
       const options = {
@@ -64,6 +68,31 @@ const App = () => {
       const data = await response.json();
 
       console.log(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const generateVariations = async () => {
+    setImages([]);
+
+    if (selectedImage === "") {
+      setError("Error! Must have an image!");
+      setOpenModal(false);
+      return;
+    }
+
+    const options = {
+      method: "POST",
+    };
+
+    try {
+      const response = await fetch("http://localhost:8000/variations", options);
+      const data = await response.json();
+
+      setImages(data);
+      setError("");
+      setOpenModal(false);
     } catch (error) {
       console.error(error);
     }
@@ -102,6 +131,17 @@ const App = () => {
           to edit.
         </p>
       </section>
+
+      {openModal && (
+        <div className="overlay">
+          <Modal
+            setModalOpen={setOpenModal}
+            setSelectedImage={setSelectedImage}
+            selectedImage={selectedImage}
+            generateVariations={generateVariations}
+          />
+        </div>
+      )}
 
       <section className="error-section">{error && <p>{error}</p>}</section>
 
